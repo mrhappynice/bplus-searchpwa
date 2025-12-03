@@ -1,5 +1,5 @@
 # bplus🤷🏻‍♂️ SearchPWA
-Easy PWA install, click install and it's done :) Some connectors will still need the backend "sidecar" server such as DDG, but wikipedia, apple podcasts, etc. API and custom user connectors are working!
+Easy PWA install, click install and it's done :) Some connectors will still need the backend "sidecar" server such as DDG, but wikipedia, apple podcasts, etc. API and custom user connectors are working! Try it out: https://searchpwa.mhn.lol/ or your local options are to easy launch pwa with ```python3 server.py``` from public folder, downloading the bin,  or building with cargo. 
 
 Check out the [search-apis.md](https://github.com/mrhappynice/bplus-searchrs/blob/main/search-apis.md) file to see how to add your own. (When clicking the +Add button)Apple Podcasts API is auto-populated to demo how, remove to add custom paths.
 #### Super small, super fast, Rust + HTML/JS UI. Local database of convos for research memory, provider and model selection(local and paid) , built-in native connectors and generic user added apis through UI. Optional connection to SearXNG. <sub>app might be a bit buggy :)</sub> added support in [bplus-TUI](https://github.com/mrhappynice/bplus-tui) 
