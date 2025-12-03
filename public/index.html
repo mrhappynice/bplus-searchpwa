@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>bplus🤷‍♂️️ Search (PWA)</title>
+        <link rel="manifest" href="manifest.json" />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        
+        <!-- PWA & SQLite Dependencies -->
+        <script src="sqlite3.js"></script>
+        <script src="pwa-logic.js"></script>
+
+        <style>
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --container-bg: #2d2d2d;
+                --border-color: #444;
+                --primary-color: #64b5f6;
+                --button-hover-bg: #42a5f5;
+                --disabled-color: #555;
+                --link-color: #90caf9;
+                --code-bg: #3c3c3c;
+                --panel-bg: #252526;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif;
+                line-height: 1.6;
+                margin: 0;
+                display: flex;
+                height: 100vh;
+                overflow: hidden;
+                background-color: var(--bg-color);
+                color: var(--text-color);
+            }
+
+            /* --- Panels --- */
+            #research-panel,
+            #settings-panel {
+                position: fixed;
+                top: 0;
+                width: 320px;
+                height: 100%;
+                background-color: var(--panel-bg);
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+                padding: 15px;
+                box-sizing: border-box;
+                transition: transform 0.3s ease;
+                z-index: 1000;
+                display: flex;
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            #research-panel {
+                left: 0;
+                transform: translateX(-100%);
+            }
+            #research-panel.visible {
+                transform: translateX(0);
+            }
+
+            #settings-panel {
+                right: 0;
+                transform: translateX(100%);
+            }
+            #settings-panel.visible {
+                transform: translateX(0);
+            }
+
+            .panel-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid var(--border-color);
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+            .panel-header h2,
+            .panel-header h3 {
+                margin: 0;
+            }
+            .close-panel-btn {
+                background: none;
+                border: none;
+                color: var(--text-color);
+                font-size: 24px;
+                cursor: pointer;
+            }
+
+            main {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+                transition:
+                    margin-left 0.3s ease,
+                    margin-right 0.3s ease;
+            }
+
+            #chat-container {
+                flex-grow: 1;
+                overflow-y: auto;
+                padding: 20px;
+            }
+            #chat-log {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            .message {
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                background-color: var(--container-bg);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            .message.user {
+                background-color: #333;
+            }
+            .message .content {
+                white-space: normal;
+            }
+            .message .content p,
+            .message .content ul,
+            .message .content ol,
+            .message .content h1,
+            .message .content h2,
+            .message .content h3 {
+                margin: 0.01em 0;
+            }
+            .message .content code {
+                background-color: var(--code-bg);
+                padding: 2px 4px;
+                border-radius: 4px;
+            }
+            .message .content pre {
+                background-color: var(--code-bg);
+                padding: 2px;
+                border-radius: 0.5px;
+                overflow-x: auto;
+            }
+
+            .sources-container {
+                margin-top: 15px;
+                border-top: 1px solid var(--border-color);
+                padding-top: 10px;
+            }
+            .sources-toggle {
+                font-weight: bold;
+                cursor: pointer;
+                color: var(--primary-color);
+            }
+            .sources-list {
+                display: none;
+                margin-top: 10px;
+            }
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+
+            a {
+                background:
+                    linear-gradient(
+                        to right,
+                        rgba(100, 200, 200, 1),
+                        rgba(100, 200, 200, 1)
+                    ),
+                    linear-gradient(
+                        to right,
+                        rgba(255, 0, 0, 1),
+                        rgba(255, 0, 180, 1),
+                        rgba(0, 100, 200, 1)
+                    );
+                background-size:
+                    100% 3px,
+                    0 3px;
+                background-position:
+                    100% 100%,
+                    0 100%;
+                background-repeat: no-repeat;
+                transition: background-size 400ms;
+            }
+
+            a:hover {
+                background-size:
+                    0 3px,
+                    100% 3px;
+            }
+            .result {
+                border-bottom: 1px solid var(--border-color);
+                padding: 10px 0;
+            }
+            .result:last-child {
+                border-bottom: none;
+            }
+            .result h3 {
+                margin: 0 0 5px 0;
+                color: var(--primary-color);
+                font-size: 1em;
+            }
+            .result p {
+                margin: 5px 0 0 0;
+            }
+
+            #status {
+                text-align: center;
+                color: var(--text-color);
+                padding: 10px;
+                max-width: 800px;
+                margin: 0 auto;
+            }
+
+            #search-footer {
+                background-color: var(--bg-color);
+                padding: 15px 20px;
+                border-top: 1px solid var(--border-color);
+            }
+            .footer-content {
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            #timeframe-buttons {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+            .timeframe-btn {
+                background-color: #3d3d3d;
+                color: var(--text-color);
+                border: 1px solid var(--border-color);
+                padding: 8px 12px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .timeframe-btn:hover {
+                background-color: #4f4f4f;
+            }
+            .timeframe-btn.active {
+                background-color: var(--primary-color);
+                border-color: var(--button-hover-bg);
+                color: white;
+            }
+
+            #search-form {
+                display: flex;
+                gap: 10px;
+            }
+            #query-input {
+                flex-grow: 1;
+                padding: 12px;
+                font-size: 16px;
+                border: 1px solid var(--border-color);
+                border-radius: 5px;
+                background-color: #3d3d3d;
+                color: var(--text-color);
+                outline: none;
+            }
+            #search-button {
+                padding: 12px 20px;
+                font-size: 16px;
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            #search-button:disabled {
+                background-color: var(--disabled-color);
+                cursor: not-allowed;
+            }
+            .icon-button {
+                background: none;
+                border: 1px solid var(--border-color);
+                color: var(--text-color);
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            /* --- Settings/Research Panel Specific --- */
+            .settings-group {
+                margin-bottom: 20px;
+            }
+            .settings-group label {
+                display: block;
+                margin-bottom: 5px;
+            }
+            .settings-group select,
+            .settings-group textarea,
+            .settings-group input {
+                width: 100%;
+                padding: 8px;
+                background-color: #3d3d3d;
+                color: var(--text-color);
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                box-sizing: border-box;
+            }
+
+            /* --- Conversations List Updates --- */
+            #conversations-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                overflow-y: auto;
+                flex-grow: 1;
+            }
+            #conversations-list li {
+                padding: 10px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin-bottom: 5px;
+                border: 1px solid transparent;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            #conversations-list li:hover {
+                background-color: #3d3d3d;
+            }
+            #conversations-list li.active {
+                background-color: var(--primary-color);
+                color: white;
+                border-color: var(--button-hover-bg);
+            }
+
+            .conv-title {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex-grow: 1;
+                margin-right: 10px;
+            }
+
+            .delete-conv-btn {
+                background: none;
+                border: none;
+                color: #888;
+                cursor: pointer;
+                font-size: 1.2em;
+                padding: 0 5px;
+                opacity: 0; /* Hide by default */
+                transition: opacity 0.2s, color 0.2s;
+                flex-shrink: 0;
+            }
+            
+            #conversations-list li:hover .delete-conv-btn,
+            #conversations-list li.active .delete-conv-btn {
+                opacity: 1;
+                color: inherit;
+            }
+            
+            .delete-conv-btn:hover {
+                color: #ff5252 !important;
+            }
+
+            #new-chat-btn {
+                width: 100%;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .db-actions {
+                display: flex;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            .db-actions button {
+                flex: 1;
+            }
+
+            /* --- Notes Container --- */
+            #notes-container {
+                display: none;
+                flex-direction: column;
+                border-top: 1px solid var(--border-color);
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            #notes-textarea {
+                height: 150px;
+                resize: vertical;
+                margin-bottom: 10px;
+            }
+            #save-notes-btn {
+                width: 100%;
+            }
+
+            /* --- Loader Modal --- */
+            #loader-modal-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                z-index: 2000;
+                justify-content: center;
+                align-items: center;
+            }
+            #loader-modal {
+                background: var(--container-bg);
+                padding: 20px;
+                border-radius: 8px;
+                width: 90%;
+                max-width: 400px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            }
+            #db-files-list {
+                list-style: none;
+                padding: 0;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            #db-files-list li {
+                padding: 10px;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+            #db-files-list li:hover {
+                background-color: var(--primary-color);
+                color: white;
+            }
+
+            /* --- Provider List Styles --- */
+            #providers-list { list-style: none; padding: 0; }
+            #providers-list input { width: 15% }
+            #add-provider-form { display: none; flex-direction: column; gap: 8px; background: #333; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+            .prov-del-btn { background: #500; border: none; color: white; border-radius: 3px; cursor: pointer; padding: 2px 6px; }
+
+            .prov-check {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 40px;
+                height: 22px;
+                background: #4a4a4a;
+                border-radius: 20px;
+                position: relative;
+                outline: none;
+                cursor: pointer;
+                transition: background 0.3s ease;
+                border: 1px solid var(--border-color);
+                margin-right: 10px;
+                flex-shrink: 0;
+            }
+
+            .prov-check::after {
+                content: '';
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 16px;
+                height: 16px;
+                background: #e0e0e0;
+                border-radius: 50%;
+                transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            }
+
+            .prov-check:checked {
+                background: var(--primary-color);
+                border-color: var(--primary-color);
+            }
+
+            .prov-check:checked::after {
+                transform: translateX(18px);
+                background: #fff;
+            }
+
+            #providers-list li {
+                display: flex;
+                justify-content: space-between;
+                padding: 12px 10px;
+                background: #333;
+                margin-bottom: 8px;
+                border-radius: 6px;
+                align-items: center;
+                transition: background 0.2s;
+            }
+
+            #providers-list li:hover {
+                background: #3c3c3c;
+            }
+
+            #providers-list label {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                cursor: pointer;
+            }
+
+        </style>
+    </head>
+    <body>
+        <aside id="research-panel">
+            <div class="panel-header">
+                <h2>Research</h2>
+                <button class="close-panel-btn" data-panel="research-panel">
+                    &times;
+                </button>
+            </div>
+            <button id="new-chat-btn" class="timeframe-btn">+ New Chat</button>
+            <ul id="conversations-list"></ul>
+
+            <!-- Notes Section -->
+            <div id="notes-container">
+                <h3>Notes</h3>
+                <textarea
+                    id="notes-textarea"
+                    class="settings-group"
+                    placeholder="Your curated notes..."
+                ></textarea>
+                <button id="save-notes-btn" class="timeframe-btn">
+                    Save Notes
+                </button>
+            </div>
+
+<div class="db-actions">
+    <!-- Hidden input for file loading -->
+    <input type="file" id="db-file-input" style="display: none;" accept=".db,.sqlite">
+    
+    <button id="load-db-btn" class="timeframe-btn">Load DB</button>
+    <button id="save-db-btn" class="timeframe-btn">Save DB</button>
+</div>
+        </aside>
+
+        <main id="main-content">
+            <div id="chat-container"><div id="chat-log"></div></div>
+            <div id="status"></div>
+            <footer id="search-footer">
+                <div class="footer-content">
+                    <div id="timeframe-buttons">
+                        <button class="timeframe-btn" data-timeframe="day">
+                            Past 24 hours
+                        </button>
+                        <button class="timeframe-btn" data-timeframe="week">
+                            Past week
+                        </button>
+                        <button class="timeframe-btn" data-timeframe="month">
+                            Past month
+                        </button>
+                        <button class="timeframe-btn active" data-timeframe="">
+                            All time
+                        </button>
+                    </div>
+                    <form id="search-form">
+                        <button
+                            type="button"
+                            class="icon-button"
+                            id="research-toggle-btn"
+                        >
+                            📚
+                        </button>
+                        <input
+                            type="text"
+                            id="query-input"
+                            placeholder="Enter your search query..."
+                            required
+                            autocomplete="off"
+                        />
+                        <button type="submit" id="search-button">Search</button>
+                        <button
+                            type="button"
+                            class="icon-button"
+                            id="settings-toggle-btn"
+                        >
+                            ⚙️
+                        </button>
+                    </form>
+                </div>
+            </footer>
+        </main>
+
+        <aside id="settings-panel">
+            <div class="panel-header">
+                <h2>Settings</h2>
+                <button class="close-panel-btn" data-panel="settings-panel">
+                    &times;
+                </button>
+            </div>
+            <div class="settings-group">
+                <label for="provider-select">LLM Provider</label
+                ><select id="provider-select">
+                    <option value="lmstudio">Local (Port 1234)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="google">Google</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="model-select">Model</label
+                ><select id="model-select">
+                    <option value="local-model">Loading / Default...</option>
+                </select>
+            </div>
+            
+            <div class="settings-group">
+                <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+                    <h3>Search Sources</h3>
+                    <div style="display: flex; gap: 5px;">
+                        <button id="sel-all-prov-btn" class="timeframe-btn" style="font-size: 0.8em; padding: 4px 8px;">All</button>
+                        <button id="sel-none-prov-btn" class="timeframe-btn" style="font-size: 0.8em; padding: 4px 8px;">None</button>
+                        <button id="show-add-prov-btn" class="timeframe-btn" style="font-size: 0.8em; padding: 4px 8px;">+ Add</button>
+                    </div>
+                </div>
+                
+                <div id="add-provider-form">
+                    <input id="new-prov-name" placeholder="Name (e.g. Apple Podcasts)" value="Apple Podcasts">
+                    <input id="new-prov-url" placeholder="API URL" value="https://itunes.apple.com/search?term={q}&entity=podcast&limit=5">
+                    <input id="new-prov-headers" placeholder='Headers' value="{}">
+                    <input id="new-prov-res" placeholder="Results Path" value="results">
+                    <input id="new-prov-title" placeholder="Title Path" value="collectionName">
+                    <input id="new-prov-url-path" placeholder="URL Path" value="collectionViewUrl">
+                    <input id="new-prov-content" placeholder="Content Path" value="artistName">
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <button id="save-prov-btn" class="timeframe-btn">Save</button>
+                        <button id="cancel-prov-btn" class="timeframe-btn" style="background:#555">Cancel</button>
+                    </div>
+                </div>
+
+                <ul id="providers-list"></ul>
+            </div>
+
+            <div class="settings-group">
+                <div class="panel-header" style="flex-wrap: wrap; gap: 10px;">
+                    <h3>Connections</h3>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="window.open('http://localhost:1234', '_blank')" class="timeframe-btn" style="font-size: 0.8em; padding: 4px 8px;">llama.cpp UI ↗</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label for="system-prompt-input">System Prompt</label
+                ><textarea id="system-prompt-input">
+You are a helpful assistant that summarizes web search results and formats your response using Markdown.</textarea
+                >
+            </div>
+        </aside>
+
+        <script>
+            // --- DOM Elements ---
+            const queryInput = document.getElementById("query-input"),
+                searchButton = document.getElementById("search-button");
+            const statusDiv = document.getElementById("status"),
+                timeframeButtonsContainer =
+                    document.getElementById("timeframe-buttons");
+            const chatLog = document.getElementById("chat-log"),
+                chatContainer = document.getElementById("chat-container");
+
+            // --- Panels ---
+            const researchPanel = document.getElementById("research-panel"),
+                settingsPanel = document.getElementById("settings-panel");
+            const researchToggleBtn = document.getElementById("research-toggle-btn"),
+                settingsToggleBtn = document.getElementById("settings-toggle-btn");
+            const newChatBtn = document.getElementById("new-chat-btn"),
+                conversationsList = document.getElementById("conversations-list");
+            
+            // --- Notes ---
+            const notesContainer = document.getElementById("notes-container");
+            const notesTextarea = document.getElementById("notes-textarea");
+            const saveNotesBtn = document.getElementById("save-notes-btn");
+
+            // --- Settings ---
+            const providerSelect = document.getElementById("provider-select"),
+                modelSelect = document.getElementById("model-select"),
+                systemPromptInput = document.getElementById("system-prompt-input");
+            
+            // --- Providers ---
+            const providersList = document.getElementById("providers-list"),
+                addProviderForm = document.getElementById("add-provider-form"),
+                showAddProvBtn = document.getElementById("show-add-prov-btn"),
+                saveProvBtn = document.getElementById("save-prov-btn"),
+                cancelProvBtn = document.getElementById("cancel-prov-btn"),
+                selAllProvBtn = document.getElementById("sel-all-prov-btn"),
+                selNoneProvBtn = document.getElementById("sel-none-prov-btn");
+
+            // --- State ---
+            let selectedTimeframe = "",
+                currentConversationId = null,
+                providers = [];
+            // --- Save/Load Logic ---
+const loadDbBtn = document.getElementById("load-db-btn");
+const saveDbBtn = document.getElementById("save-db-btn");
+const dbFileInput = document.getElementById("db-file-input");
+
+saveDbBtn.addEventListener("click", () => {
+    DB.exportDatabase();
+});
+
+loadDbBtn.addEventListener("click", () => {
+    dbFileInput.click(); // Trigger hidden input
+});
+
+dbFileInput.addEventListener("change", (e) => {
+    if(e.target.files.length > 0) {
+        if(confirm("This will overwrite your current database. Continue?")) {
+            DB.importDatabase(e.target.files[0]);
+        }
+    }
+});
+
+            // --- Marked.js & Highlight.js Setup ---
+            marked.setOptions({
+                gfm: true,
+                breaks: true,
+                highlight: (code, lang) =>
+                    hljs.highlight(code, {
+                        language: hljs.getLanguage(lang) ? lang : "plaintext",
+                    }).value,
+            });
+
+            // --- Init & Event Listeners ---
+            document.addEventListener("DOMContentLoaded", async () => {
+                await initPwa(); // From pwa-logic.js
+                
+                // Register Service Worker for PWA capabilities
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('service-worker.js');
+                }
+
+                loadConversations();
+                loadProviders();
+                
+                // Attempt to fetch models from localhost by default
+                fetchModels('lmstudio'); 
+            });
+
+            researchToggleBtn.addEventListener("click", () => researchPanel.classList.toggle("visible"));
+            settingsToggleBtn.addEventListener("click", () => settingsPanel.classList.toggle("visible"));
+            
+            document.querySelectorAll(".close-panel-btn").forEach((btn) =>
+                btn.addEventListener("click", () =>
+                    document.getElementById(btn.dataset.panel)?.classList.remove("visible")
+                )
+            );
+
+            // --- Logic using DB (pwa-logic.js) ---
+
+            async function loadConversations() {
+                try {
+                    const convos = await DB.getConversations();
+                    conversationsList.innerHTML = convos
+                        .map(c => `
+                            <li data-id="${c.id}" class="${c.id === currentConversationId ? "active" : ""}">
+                                <span class="conv-title">${c.title}</span>
+                                <button class="delete-conv-btn" onclick="deleteConversation(${c.id}, event)" title="Delete Chat">×</button>
+                            </li>`)
+                        .join("");
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
+            window.deleteConversation = async function(id, event) {
+                event.stopPropagation();
+                if (!confirm("Are you sure you want to delete this chat?")) return;
+                DB.deleteConversation(id);
+                if (currentConversationId === id) startNewChat();
+                loadConversations();
+            };
+
+            async function loadConversation(id) {
+                try {
+                    const data = await DB.getConversation(id);
+                    chatLog.innerHTML = "";
+                    data.messages.forEach((msg) =>
+                        appendMessage(msg.role, msg.content, JSON.parse(msg.sources || "[]"))
+                    );
+                    currentConversationId = id;
+                    notesTextarea.value = data.note_content || "";
+                    notesContainer.style.display = "flex";
+
+                    document.querySelectorAll("#conversations-list li").forEach((li) =>
+                        li.classList.toggle("active", parseInt(li.dataset.id) === id)
+                    );
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } catch (error) {
+                    console.error("Failed to load conversation:", error);
+                }
+            }
+
+            function startNewChat() {
+                currentConversationId = null;
+                chatLog.innerHTML = "";
+                notesContainer.style.display = "none";
+                notesTextarea.value = "";
+                document.querySelectorAll("#conversations-list li.active").forEach((li) => li.classList.remove("active"));
+            }
+            newChatBtn.addEventListener("click", startNewChat);
+
+            conversationsList.addEventListener("click", (e) => {
+                const li = e.target.closest("li");
+                if (li && !e.target.classList.contains("delete-conv-btn")) {
+                    const id = parseInt(li.dataset.id);
+                    if (id !== currentConversationId) loadConversation(id);
+                }
+            });
+
+            saveNotesBtn.addEventListener("click", async () => {
+                if (!currentConversationId) return alert("Please select a conversation first.");
+                DB.saveNote(currentConversationId, notesTextarea.value);
+                saveNotesBtn.textContent = "Saved!";
+                setTimeout(() => (saveNotesBtn.textContent = "Save Notes"), 2000);
+            });
+
+            // --- Provider Management ---
+            function loadProviders() {
+                providers = DB.getProviders();
+                renderProviders();
+            }
+
+            function renderProviders() {
+    providersList.innerHTML = providers.map(p => `
+        <li style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #333; margin-bottom: 8px; border-radius: 6px;">
+            <div style="display: flex; align-items: center; flex-grow: 1; cursor: pointer;" onclick="toggleProv(${p.id}, this)">
+                <input type="checkbox" class="prov-check" ${p.is_enabled ? 'checked' : ''} style="pointer-events: none; margin-right: 10px;">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:500; font-size:1em;">${p.name}</span>
+                    <span style="font-size:0.75em; color:#999;">${p.type === 'native' ? 'Built-in' : 'Custom API'}</span>
+                </div>
+            </div>
+            ${p.type === 'generic' ? `<button onclick="delProvider(${p.id}); event.stopPropagation();" class="prov-del-btn" title="Delete">×</button>` : ''}
+        </li>
+    `).join('');
+}
+
+// Global toggle handler to ensure clicks register
+window.toggleProv = function(id, div) {
+    const checkbox = div.querySelector('input');
+    const newState = !checkbox.checked;
+    checkbox.checked = newState; // Visual update
+    DB.toggleProvider(id, newState); // DB update
+    
+    // Update local state without full reload to prevent jitter
+    const p = providers.find(x => x.id === id);
+    if(p) p.is_enabled = newState;
+};
+
+            selAllProvBtn.addEventListener('click', () => {
+                // Get fresh list from DB
+                const currentProvs = DB.getProviders();
+                currentProvs.forEach(p => {
+                    DB.toggleProvider(p.id, true);
+                });
+                loadProviders(); // Re-render UI
+            });
+
+            selNoneProvBtn.addEventListener('click', () => {
+                const currentProvs = DB.getProviders();
+                currentProvs.forEach(p => {
+                    // Don't disable Local DB or it breaks the app
+                    if (p.api_url !== "native_local_db") {
+                        DB.toggleProvider(p.id, false);
+                    }
+                });
+                loadProviders(); // Re-render UI
+            });
+
+            window.delProvider = function(id) {
+                if(confirm('Delete provider?')) {
+                    DB.deleteProvider(id);
+                    loadProviders();
+                }
+            };
+
+            showAddProvBtn.addEventListener('click', () => addProviderForm.style.display = 'flex');
+            cancelProvBtn.addEventListener('click', () => addProviderForm.style.display = 'none');
+            
+            saveProvBtn.addEventListener('click', () => {
+                const body = {
+                    name: document.getElementById('new-prov-name').value,
+                    api_url: document.getElementById('new-prov-url').value,
+                    api_headers: document.getElementById('new-prov-headers').value,
+                    result_path: document.getElementById('new-prov-res').value,
+                    title_path: document.getElementById('new-prov-title').value,
+                    url_path: document.getElementById('new-prov-url-path').value,
+                    content_path: document.getElementById('new-prov-content').value
+                };
+                if(!body.name || !body.api_url) return alert("Name and URL required");
+                
+                DB.addProvider(body);
+                addProviderForm.style.display = 'none';
+                loadProviders();
+            });
+
+            // --- LLM Logic (Client Side) ---
+            async function fetchModels(provider) {
+                modelSelect.innerHTML = "<option>Loading models...</option>";
+                let url = "";
+                // Simple mapping for PWA demo
+                if (provider === "lmstudio") url = "http://localhost:1234/v1/models";
+                if (provider === "openrouter") url = "https://openrouter.ai/api/v1/models";
+                if (provider === "openai") url = "https://api.openai.com/v1/models";
+
+                try {
+                   const headers = {};
+                   if(provider !== 'lmstudio') {
+                       // Simple prompt for key in this demo version
+                       const key = localStorage.getItem("api_key_" + provider) || prompt(`Enter API Key for ${provider}:`);
+                       if(key) {
+                           localStorage.setItem("api_key_" + provider, key);
+                           headers['Authorization'] = `Bearer ${key}`;
+                       }
+                   }
+
+                   const res = await fetch(url, { headers });
+                   if (!res.ok) throw new Error("Failed to fetch");
+                   const data = await res.json();
+                   
+                   modelSelect.innerHTML = data.data.map(m => 
+                       `<option value="${m.id}">${m.id}</option>`
+                   ).join("");
+
+                } catch (error) {
+                    console.log(error);
+                    modelSelect.innerHTML = `<option value="default">Default / ${provider}</option>`;
+                }
+            }
+            providerSelect.addEventListener("change", () => fetchModels(providerSelect.value));
+
+
+            // --- MAIN SEARCH LOGIC ---
+            document.getElementById("search-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const query = queryInput.value.trim();
+                if (!query) return;
+
+                searchButton.disabled = true;
+                statusDiv.textContent = "Thinking...";
+                appendMessage("user", query);
+                queryInput.value = "";
+
+                // 1. Ensure Conversation Exists
+                if (!currentConversationId) {
+                    const newConvo = await DB.createConversation(query.substring(0, 50));
+                    currentConversationId = newConvo.id;
+                    await loadConversations();
+                    notesContainer.style.display = "flex";
+                }
+                
+                DB.addMessage(currentConversationId, "user", query, null);
+
+                // 2. Perform Dual Search (Browser + Sidecar)
+                const activeProvs = providers.filter(p => p.is_enabled);
+                let searchResults = [];
+                try {
+                    searchResults = await performDualSearch(query, activeProvs);
+                } catch(e) {
+                    console.error("Search failed", e);
+                }
+
+                // 3. Update UI with Results Count
+                if(searchResults.length > 0) {
+                    statusDiv.textContent = `Found ${searchResults.length} sources... generating summary`;
+                } else {
+                    statusDiv.textContent = `No external sources found, using internal knowledge...`;
+                }
+
+                // 4. Construct Prompt
+                const currentDate = new Date().toISOString().split('T')[0];
+                let userPrompt = "";
+                if (searchResults.length === 0) {
+                    userPrompt = `Current Date: ${currentDate}\nQuery: "${query}"\n\nNo search results found. Answer from internal knowledge.`;
+                } else {
+                    const snippets = searchResults.slice(0, 10).map(r => `[${r.engine}] ${r.title}\nURL: ${r.url}\nSnippet: ${r.content}`).join("\n\n---\n\n");
+                    userPrompt = `Current Date: ${currentDate}\nQuery: "${query}"\n\nBased on these results, summarize the answer:\n${snippets}`;
+                }
+
+                // 5. Fetch LLM Stream
+                const prov = providerSelect.value;
+                const model = modelSelect.value;
+                const sysPrompt = systemPromptInput.value;
+
+                let endpoint = "http://localhost:1234/v1/chat/completions";
+                let headers = { "Content-Type": "application/json" };
+                
+                if (prov === "openai") endpoint = "https://api.openai.com/v1/chat/completions";
+                if (prov === "openrouter") endpoint = "https://openrouter.ai/api/v1/chat/completions";
+                
+                if (prov !== "lmstudio") {
+                    const key = localStorage.getItem("api_key_" + prov);
+                    if(key) headers['Authorization'] = `Bearer ${key}`;
+                }
+                if (prov === "openrouter") {
+                     headers['HTTP-Referer'] = window.location.origin;
+                }
+
+                let fullText = "";
+                let { div: assistantDiv, content: contentDiv } = appendMessage("assistant", "...", searchResults);
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: "POST",
+                        headers: headers,
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [
+                                { role: "system", content: sysPrompt },
+                                { role: "user", content: userPrompt }
+                            ],
+                            stream: true
+                        })
+                    });
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.replace('data: ', '').trim();
+                                if (dataStr === '[DONE]') break;
+                                try {
+                                    const data = JSON.parse(dataStr);
+                                    const delta = data.choices[0].delta.content;
+                                    if (delta) {
+                                        fullText += delta;
+                                        contentDiv.innerHTML = marked.parse(fullText);
+                                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                    }
+
+                    // Save Assistant Response to DB
+                    DB.addMessage(currentConversationId, "assistant", fullText, JSON.stringify(searchResults));
+
+                } catch (e) {
+                    contentDiv.textContent += "\n[Error connecting to LLM. Ensure Localhost:1234 is running with CORS enabled, or API Key is valid.]";
+                } finally {
+                    searchButton.disabled = false;
+                    statusDiv.textContent = "";
+                    hljs.highlightAll();
+                }
+            });
+
+            // --- Helpers ---
+            function appendMessage(role, content, sources = []) {
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `message ${role}`;
+                const contentDiv = document.createElement("div");
+                contentDiv.className = "content";
+                contentDiv.innerHTML = marked.parse(content);
+                messageDiv.appendChild(contentDiv);
+
+                if (role === "assistant" && sources && sources.length > 0) {
+                    const sourcesContainer = document.createElement("div");
+                    sourcesContainer.className = "sources-container";
+                    sourcesContainer.innerHTML = `<span class="sources-toggle">Show ${sources.length} Sources ▼</span>`;
+                    const sourcesList = document.createElement("div");
+                    sourcesList.className = "sources-list";
+                    sourcesList.innerHTML = sources
+                        .map(s => `<div class="result"><h3>${s.title}</h3><p>${s.content}</p><a href="${s.url}" target="_blank">${s.url}</a></div>`)
+                        .join("");
+                    sourcesContainer.appendChild(sourcesList);
+                    messageDiv.appendChild(sourcesContainer);
+                }
+
+                chatLog.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return { div: messageDiv, content: contentDiv };
+            }
+
+            chatLog.addEventListener("click", (e) => {
+                if (e.target.classList.contains("sources-toggle")) {
+                    const list = e.target.nextElementSibling,
+                        isVisible = list.style.display === "block";
+                    list.style.display = isVisible ? "none" : "block";
+                    e.target.textContent = isVisible
+                        ? `Show ${list.children.length} Sources ▼`
+                        : `Hide ${list.children.length} Sources ▲`;
+                }
+            });
+
+            timeframeButtonsContainer.addEventListener("click", (e) => {
+                if (e.target.tagName === "BUTTON") {
+                    timeframeButtonsContainer.querySelector(".active")?.classList.remove("active");
+                    e.target.classList.add("active");
+                    selectedTimeframe = e.target.dataset.timeframe;
+                }
+            });
+
+        </script>
+    </body>
+</html>
