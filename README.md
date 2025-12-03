@@ -36,6 +36,7 @@ Check out the [search-apis.md](https://github.com/mrhappynice/bplus-searchrs/blo
   - ```sh
     git clone https://github.com/mrhappynice/bplus-searchrs.git && cd bplus-searchrs
     ```
+    - If deploying the PWA in public folder to a service like Netlify, or hosting with Niginx, put sqlite wasm files in the folder, dl from: https://sqlite.org/download.html look for zip file marked 'wasm'
 - Build it:
   - ```sh
     cargo build --release
